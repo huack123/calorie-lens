@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calorie Lens</title>
+    <meta
+      name="description"
+      content="Estimate meal calories and macros from a description or photo, powered by the DeepSeek API."
+    />
+    <link rel="stylesheet" href="/vendor/bootstrap.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="boot" class="boot-screen">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true" fill="none">
+          <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2" />
+          <circle cx="16" cy="16" r="6.5" stroke="currentColor" stroke-width="1.5" opacity=".5" />
+        </svg>
+        <span>Calorie Lens</span>
+      </div>
+      <p class="text-secondary mt-3 mb-0">Checking your session…</p>
+    </div>
+
+    <div id="auth-screen" class="auth-screen" hidden>
+      <div class="card auth-card shadow-sm">
+        <div class="card-body p-4 p-sm-5 text-center">
+          <div class="brand justify-content-center mb-4">
+            <svg viewBox="0 0 32 32" aria-hidden="true" fill="none">
+              <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2" />
+              <circle cx="16" cy="16" r="6.5" stroke="currentColor" stroke-width="1.5" opacity=".5" />
+            </svg>
+            <span>Calorie Lens</span>
+          </div>
+          <h1 class="h3 fw-medium mb-2">Welcome back</h1>
+          <p class="text-secondary mb-4">
+            Sign in with Google to keep your meals and daily goal synced across devices.
+          </p>
+          <button
+            id="google-signin"
+            class="btn btn-google w-100 d-inline-flex align-items-center justify-content-center gap-2"
+            type="button"
+          >
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path
+                fill="#EA4335"
+                d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+              />
+              <path
+                fill="#4285F4"
+                d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+              />
+              <path
+                fill="#34A853"
+                d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+              />
+            </svg>
+            <span id="google-label">Continue with Google</span>
+          </button>
+          <p id="auth-error" class="alert alert-danger text-start mt-3 mb-0" role="alert" hidden></p>
+          <p class="small text-secondary mt-4 mb-0">
+            Your meals are stored in your Supabase project. Estimates are approximate and not
+            medical advice.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div id="app" class="container app" hidden>
+      <header class="masthead">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div class="brand">
+            <svg viewBox="0 0 32 32" aria-hidden="true" fill="none">
+              <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2" />
+              <circle cx="16" cy="16" r="6.5" stroke="currentColor" stroke-width="1.5" opacity=".5" />
+            </svg>
+            <span>Calorie Lens</span>
+          </div>
+          <div class="account d-flex align-items-center gap-2">
+            <img id="avatar" class="avatar rounded-circle" alt="" hidden />
+            <span id="user-email" class="small text-secondary text-truncate"></span>
+            <button id="signout" class="btn btn-outline-secondary btn-sm" type="button">
+              Sign out
+            </button>
+          </div>
+        </div>
+        <p class="text-secondary tagline mb-0">
+          Describe a meal or upload a photo. DeepSeek estimates the calories and macros for you.
+        </p>
+      </header>
+
+      <main class="row g-4">
+        <div class="col-lg-7">
+          <section class="card shadow-sm mb-4" aria-labelledby="meal-heading">
+            <div class="card-body p-4">
+              <h2 id="meal-heading" class="h4 fw-medium mb-3">What did you eat?</h2>
+              <label class="visually-hidden" for="meal">Meal description</label>
+              <textarea
+                id="meal"
+                class="form-control"
+                rows="4"
+                placeholder="e.g. two scrambled eggs, sourdough toast with butter, a flat white"
+              ></textarea>
+
+              <div class="d-flex flex-wrap gap-2 mt-3">
+                <button
+                  id="camera-btn"
+                  class="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
+                  type="button"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" />
+                    <circle cx="12" cy="13" r="3.5" />
+                  </svg>
+                  Camera
+                </button>
+                <button
+                  id="photo-btn"
+                  class="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
+                  type="button"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <rect x="3" y="5" width="18" height="14" rx="2.5" />
+                    <circle cx="9" cy="10" r="1.6" />
+                    <path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5" />
+                  </svg>
+                  Add photo
+                </button>
+                <input id="photo" type="file" accept="image/*" hidden />
+                <button id="analyze" class="btn btn-primary" type="button">Estimate calories</button>
+              </div>
+
+              <div id="preview" class="preview position-relative mt-3" hidden>
+                <img id="preview-img" class="rounded-3 border" alt="Selected meal photo" />
+                <button id="remove-photo" class="remove" type="button" aria-label="Remove photo">
+                  &times;
+                </button>
+              </div>
+
+              <p id="error" class="alert alert-danger mt-3 mb-0" role="alert" hidden></p>
+              <p class="form-text mt-3 mb-0">
+                Include portions and cooking method for a better estimate. <kbd>Ctrl</kbd> +
+                <kbd>Enter</kbd> submits.
+              </p>
+            </div>
+          </section>
+
+          <section id="result" class="card shadow-sm" aria-labelledby="result-heading" hidden>
+            <div class="card-body p-4">
+              <div class="d-flex align-items-baseline justify-content-between gap-3">
+                <h2 id="result-heading" class="h4 fw-medium mb-0">Estimate</h2>
+                <span id="result-total" class="total-kcal">0 kcal</span>
+              </div>
+              <ul id="result-items" class="list-group list-group-flush mt-2"></ul>
+              <div id="result-macros" class="d-flex flex-wrap gap-2 mt-3"></div>
+              <button id="add" class="btn btn-primary w-100 mt-4" type="button">
+                Add to today
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-lg-5">
+          <section class="card shadow-sm today-card" aria-labelledby="today-heading">
+            <div class="card-body p-4">
+              <div class="d-flex align-items-baseline justify-content-between">
+                <h2 id="today-heading" class="h4 fw-medium mb-0">Today</h2>
+                <span id="today-date" class="small text-secondary"></span>
+              </div>
+
+              <div class="d-flex align-items-center justify-content-between gap-3 mt-3 mb-2">
+                <label for="goal" class="small text-secondary">Daily goal</label>
+                <div class="input-group input-group-sm goal-input">
+                  <input
+                    id="goal"
+                    type="number"
+                    class="form-control"
+                    min="500"
+                    max="10000"
+                    step="50"
+                    inputmode="numeric"
+                  />
+                  <span class="input-group-text">kcal</span>
+                </div>
+              </div>
+
+              <div
+                id="meter"
+                class="progress"
+                role="progressbar"
+                aria-labelledby="today-heading"
+                aria-valuemin="0"
+                aria-valuemax="2000"
+                aria-valuenow="0"
+              >
+                <div id="meter-fill" class="progress-bar"></div>
+              </div>
+
+              <div class="row g-2 mt-1">
+                <div class="col-6">
+                  <div class="stat rounded-3 p-3">
+                    <span id="consumed" class="stat-value">0</span>
+                    <small>eaten</small>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div id="remaining-stat" class="stat rounded-3 p-3">
+                    <span id="remaining" class="stat-value">0</span>
+                    <small>remaining</small>
+                  </div>
+                </div>
+              </div>
+
+              <p id="macro-total" class="small text-secondary mt-3 mb-0" hidden></p>
+              <ul id="log" class="list-group list-group-flush mt-2"></ul>
+              <p id="empty-log" class="fst-italic small text-secondary mt-3 mb-0">
+                Nothing logged yet today.
+              </p>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <footer class="text-center small text-secondary mt-4">
+        Estimates are approximate and not medical or dietary advice.
+      </footer>
+
+      <dialog id="camera-dialog" class="camera-dialog" aria-labelledby="camera-title">
+        <div class="camera-panel">
+          <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+            <h2 id="camera-title" class="h5 fw-medium mb-0">Take a photo</h2>
+            <button id="camera-close" class="btn-close" type="button" aria-label="Close camera"></button>
+          </div>
+          <video
+            id="camera-video"
+            class="camera-video"
+            autoplay
+            playsinline
+            muted
+            aria-label="Camera preview"
+          ></video>
+          <p id="camera-status" class="small text-secondary mt-2 mb-0">Starting camera…</p>
+          <p id="camera-error" class="alert alert-danger mt-3 mb-0" role="alert" hidden></p>
+          <div class="d-flex gap-2 mt-3">
+            <button id="camera-capture" class="btn btn-primary flex-grow-1" type="button" disabled>
+              Capture
+            </button>
+            <button id="camera-cancel" class="btn btn-outline-secondary" type="button">Cancel</button>
+          </div>
+        </div>
+      </dialog>
+    </div>
+
+    <noscript>
+      <p class="noscript">Calorie Lens needs JavaScript to run.</p>
+    </noscript>
+
+    <script src="/vendor/supabase.js" defer></script>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
