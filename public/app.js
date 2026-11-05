@@ -572,9 +572,11 @@ async function signInWithGoogle() {
   els.googleSignin.disabled = true;
   els.googleLabel.textContent = 'Redirecting…';
 
+  // Supabase matches allow-list entries exactly, including the trailing slash at the root.
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
   const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin },
+    options: { redirectTo },
   });
 
   if (error) {
